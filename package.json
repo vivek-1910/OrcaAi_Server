@@ -10,7 +10,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test"
+    "test": "node --import tsx --test 'src/**/*.test.ts'"
   },
   "repository": {
     "type": "git",
@@ -24,16 +24,24 @@
   },
   "homepage": "https://github.com/vivek-1910/OrcaAi_Server#readme",
   "engines": {
-    "node": ">=20.9.0"
+    "node": ">=22.0.0"
   },
   "dependencies": {
+    "@ai-sdk/groq": "^4.0.36",
     "@fastify/cors": "^11.3.0",
     "@fastify/helmet": "^13.1.1",
+    "@fastify/websocket": "^11.3.0",
+    "ai": "^7.0.89",
     "dotenv": "^17.4.2",
-    "fastify": "^5.12.1"
+    "fast-xml-parser": "^5.11.1",
+    "fastify": "^5.12.1",
+    "sarvamai": "^1.1.9",
+    "ws": "^8.21.3",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",
+    "@types/ws": "^8.18.1",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2"
   }

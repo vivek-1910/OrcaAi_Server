@@ -1,6 +1,11 @@
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
+import websocket from "@fastify/websocket";
 import Fastify, { type FastifyInstance } from "fastify";
+import { registerAssessmentRoutes } from "./routes/assessment.js";
+import { registerChatRoutes } from "./routes/chat.js";
+import { registerSourceStatusRoutes } from "./routes/source-status.js";
+import { registerVoiceRoutes } from "./routes/voice.js";
 
 const defaultCorsOrigin = "http://localhost:3000";
 
@@ -18,6 +23,11 @@ export function buildApp(): FastifyInstance {
 
   app.register(helmet);
   app.register(cors, { origin: getCorsOrigin() });
+  app.register(websocket);
+  app.register(registerChatRoutes);
+  app.register(registerAssessmentRoutes);
+  app.register(registerSourceStatusRoutes);
+  app.register(registerVoiceRoutes);
 
   app.get("/", async () => ({
     name: "orca-ai-server",
