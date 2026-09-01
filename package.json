@@ -1,0 +1,40 @@
+{
+  "name": "orca-ai-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fastify API server for OrcaAi",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vivek-1910/OrcaAi_Server.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vivek-1910/OrcaAi_Server/issues"
+  },
+  "homepage": "https://github.com/vivek-1910/OrcaAi_Server#readme",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.3.0",
+    "@fastify/helmet": "^13.1.1",
+    "dotenv": "^17.4.2",
+    "fastify": "^5.12.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  }
+}
