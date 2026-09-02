@@ -100,7 +100,10 @@ async function bridgeStt(socket: WebSocket, language: string): Promise<void> {
       sendJson(socket, { type: "provider-close", code: event.code });
       if (socket.readyState === WebSocket.OPEN) socket.close(event.code || 1000);
     });
-    upstream.connect();
+    // The installed Sarvam SDK attaches its event listeners in the socket
+    // constructor and again in connect(). Reconnecting the underlying socket
+    // avoids forwarding every provider event twice to the browser.
+    upstream.socket.reconnect();
     await upstream.waitForOpen();
     upstreamReady = true;
     sendJson(socket, { type: "ready", provider: "sarvam", model: "saaras:v3-realtime", language: languageCodeFor(language), mode: "translate" });
@@ -151,7 +154,9 @@ async function bridgeTts(socket: WebSocket, language: string): Promise<void> {
       sendJson(socket, { type: "provider-close", code: event.code });
       if (socket.readyState === WebSocket.OPEN) socket.close(event.code || 1000);
     });
-    upstream.connect();
+    // Avoid the SDK connect() listener duplication; the wrapper constructor
+    // has already registered the provider event handlers.
+    upstream.socket.reconnect();
     await upstream.waitForOpen();
     upstream.configureConnection({
       type: "config",

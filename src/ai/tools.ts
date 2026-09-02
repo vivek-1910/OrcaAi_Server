@@ -80,7 +80,7 @@ export function createToolSet(context: FisherContext) {
     }),
 
     assess_fishing_conditions: tool({
-      description: "Run the deterministic, fail-closed fishing assessment for the current fisher context. Use before a go/no-go answer. The returned decision is authoritative: never recommend GO unless decision is exactly GO, and never recommend a fishing window when decision is NO_GO or UNKNOWN.",
+      description: "Run the deterministic, fail-closed fishing assessment for the current fisher context. Use before a go/no-go answer. The returned decision is authoritative: never recommend GO unless decision is exactly GO, and never recommend a fishing window when decision is NO_GO or UNKNOWN. Pass departureAt or returnAt only when the user or fisher context supplied them; otherwise omit them.",
       inputSchema: z.object({
         departureAt: z.string().datetime({ offset: true }).optional(),
         returnAt: z.string().datetime({ offset: true }).optional(),

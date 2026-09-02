@@ -33,6 +33,12 @@ function inWindow(time: string, bounds: { start: number; end: number }): boolean
   return Number.isFinite(timestamp) && timestamp >= bounds.start && timestamp <= bounds.end;
 }
 
+function usableTripTime(value: string | undefined, now: Date): string | undefined {
+  if (!value) return undefined;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) && timestamp >= now.getTime() ? value : undefined;
+}
+
 function windowWeather(result: ProviderResult<WeatherData>, bounds: { start: number; end: number }): ProviderResult<WeatherData> {
   if (!result.data) return result;
   const hourly = result.data.hourly.filter((entry) => inWindow(entry.time, bounds));
@@ -91,10 +97,14 @@ export async function assessFishingTrip(
   input: FishingAssessmentInput = {},
 ): Promise<FishingAssessment> {
   const parsed = FisherContextSchema.parse(rawContext);
+  const now = new Date();
   const context: FisherContext = {
     ...parsed,
-    departureAt: input.departureAt ?? parsed.departureAt,
-    returnAt: input.returnAt ?? parsed.returnAt,
+    // Models sometimes invent historical ISO dates when optional timing is
+    // omitted. A past date cannot be evaluated by the live forecast APIs, so
+    // fall back to the current window instead of filtering out all evidence.
+    departureAt: usableTripTime(input.departureAt ?? parsed.departureAt, now),
+    returnAt: usableTripTime(input.returnAt ?? parsed.returnAt, now),
     distanceKm: input.distanceKm ?? parsed.distanceKm,
   };
   const resolved = await resolveContextLocation(context);
@@ -118,7 +128,7 @@ export async function assessFishingTrip(
 
   const location = resolved.location;
   const fisherLocation = locationForContext(context, location);
-  const bounds = windowBounds(context, new Date());
+  const bounds = windowBounds(context, now);
   const weatherPromise = getWeather(location);
   const imdPromise = getImdSnapshot(fisherLocation, context.waterMode);
   const ndmaPromise = getNdmaSnapshot(fisherLocation);
