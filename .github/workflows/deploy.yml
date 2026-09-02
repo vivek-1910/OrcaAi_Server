@@ -46,4 +46,11 @@ jobs:
 
       - name: Verify local health
         run: |
-          curl --fail --silent --show-error --max-time 15 http://127.0.0.1:48734/health
+          for attempt in $(seq 1 15); do
+            if curl --fail --silent --show-error --max-time 5 http://127.0.0.1:48734/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "OrcaAi did not become healthy on port 48734" >&2
+          exit 1
