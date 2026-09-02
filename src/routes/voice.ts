@@ -30,12 +30,6 @@ function rawToBase64(data: RawData): string {
   return Buffer.from(data).toString("base64");
 }
 
-function isJsonMessage(data: RawData): boolean {
-  if (typeof data === "string") return true;
-  if (Buffer.isBuffer(data)) return data[0] === 123 || data[0] === 91;
-  return false;
-}
-
 function closeWithError(socket: WebSocket, message: string): void {
   sendJson(socket, { type: "error", message });
   if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) socket.close(1011, "provider unavailable");
@@ -50,16 +44,16 @@ async function bridgeStt(socket: WebSocket, language: string): Promise<void> {
   try {
     const upstream = await createSarvamSttSocket(language);
     let upstreamReady = false;
-    const pendingMessages: RawData[] = [];
+    const pendingMessages: Array<{ data: RawData; isBinary: boolean }> = [];
 
-    const handleClientMessage = (data: RawData): void => {
+    const handleClientMessage = (data: RawData, isBinary: boolean): void => {
       if (!upstreamReady) {
-        pendingMessages.push(data);
+        pendingMessages.push({ data, isBinary });
         return;
       }
 
       try {
-        if (!isJsonMessage(data)) {
+        if (isBinary) {
           upstream.sendRealtimeAudioInput({ event: "audio_input", audio: rawToBase64(data) });
           return;
         }
@@ -107,7 +101,7 @@ async function bridgeStt(socket: WebSocket, language: string): Promise<void> {
     await upstream.waitForOpen();
     upstreamReady = true;
     sendJson(socket, { type: "ready", provider: "sarvam", model: "saaras:v3-realtime", language: languageCodeFor(language), mode: "translate" });
-    for (const data of pendingMessages.splice(0)) handleClientMessage(data);
+    for (const pending of pendingMessages.splice(0)) handleClientMessage(pending.data, pending.isBinary);
     socket.on("close", () => upstream.close());
   } catch (error) {
     closeWithError(socket, error instanceof Error ? error.message : "Sarvam STT could not start.");
