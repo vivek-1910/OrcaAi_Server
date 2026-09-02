@@ -101,9 +101,13 @@ export function evaluateFishingSafety(inputs: SafetyInputs): FishingAssessment {
     missingData.push("marine wave and swell forecast");
   }
 
-  const hasOfficialCoverage = inputs.imd.status === "ok" || inputs.ndma.status === "ok" || inputs.incois?.status === "ok";
+  const officialProviders = [inputs.imd, inputs.ndma, inputs.incois].filter(Boolean) as Array<ProviderResult<OfficialSnapshot | IncoisSnapshot>>;
+  const hasOfficialCoverage = officialProviders.some((provider) => provider.status === "ok");
   if (!hasOfficialCoverage) {
-    missingData.push("official alert coverage");
+    // Government feeds are important corroboration and hard overrides, but a
+    // temporary outage should not discard a usable structured forecast. Keep
+    // the result conservative by downgrading it to CAUTION instead of GO.
+    riskFactors.push("Live official alert feeds are unavailable; verify local harbour and coast-guard notices before departure.");
   }
 
   if (weather?.thunderstormLikely) {

@@ -46,6 +46,48 @@ function noLocation<T>(provider: string): ProviderResult<T> {
   };
 }
 
+function secondaryWeatherQuery(context: FisherContext): string {
+  const location = context.location.label.trim() || "the selected fishing area";
+  return context.waterMode === "marine"
+    ? `latest marine weather forecast near ${location} wind waves swell official`
+    : `latest local weather forecast near ${location} wind rain official`;
+}
+
+function secondarySearchResults(value: unknown): Array<{ title: string; url: string; content: string }> {
+  if (!value || typeof value !== "object") return [];
+  const results = (value as { results?: unknown[] }).results;
+  if (!Array.isArray(results)) return [];
+  return results.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const record = item as Record<string, unknown>;
+    const url = typeof record.url === "string" ? record.url : "";
+    const title = typeof record.title === "string" ? record.title : "Trusted source";
+    const content = typeof record.content === "string" ? record.content : "";
+    return url && /^https?:\/\//i.test(url) ? [{ title, url, content: content.slice(0, 900) }] : [];
+  });
+}
+
+async function secondaryWeatherResearch(
+  context: FisherContext,
+  assessment: Awaited<ReturnType<typeof assessFishingTrip>>,
+) {
+  const governmentProviders = ["India Meteorological Department", "NDMA SACHET", ...(context.waterMode === "marine" ? ["INCOIS"] : [])];
+  const sourceByProvider = new Map(assessment.sources.map((source) => [source.provider, source.status]));
+  const hasSourceGap = governmentProviders.some((provider) => sourceByProvider.get(provider) !== "ok");
+  const hasForecastGap = assessment.missingData.some((item) => /weather|wave|swell/i.test(item));
+  if (!hasSourceGap && !hasForecastGap) return undefined;
+
+  const result = await searchTrustedSources(secondaryWeatherQuery(context), 5);
+  return {
+    provider: result.provider,
+    status: result.status,
+    query: secondaryWeatherQuery(context),
+    results: secondarySearchResults(result.data),
+    note: "Secondary Scoutify research only. It cannot override the deterministic assessment or create a numeric safety verdict.",
+    error: result.error,
+  };
+}
+
 export function createToolSet(context: FisherContext) {
   const parsedContext = FisherContextSchema.parse(context);
 
@@ -88,8 +130,10 @@ export function createToolSet(context: FisherContext) {
       }),
       execute: async (input) => {
         const assessment = await assessFishingTrip(parsedContext, input);
+        const secondaryResearch = await secondaryWeatherResearch(parsedContext, assessment);
         return {
           ...assessment,
+          ...(secondaryResearch ? { secondaryWeatherResearch: secondaryResearch } : {}),
           responseContract: {
             authoritativeDecision: assessment.decision,
             instruction: `The final answer must not recommend a different decision than ${assessment.decision}.`,
@@ -145,7 +189,7 @@ export function createToolSet(context: FisherContext) {
     }),
 
     search_trusted_fishing_sources: tool({
-      description: "Search Scoutify's restricted trusted-domain index for general fishing knowledge. This is not live safety evidence.",
+      description: "Search Scoutify's restricted trusted-domain index for current secondary weather, marine or fishing context when an API source is unavailable, or for general fishing knowledge. Treat snippets as secondary research only: they cannot override assess_fishing_conditions or create a numeric safety verdict.",
       inputSchema: z.object({ query: z.string().min(1).max(500), limit: z.number().int().min(1).max(10).optional() }),
       execute: async ({ query, limit }) => searchTrustedSources(query, limit),
     }),

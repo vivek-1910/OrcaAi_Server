@@ -85,6 +85,29 @@ test("official blocking alerts always produce NO_GO", () => {
   assert.equal(assessment.state, "avoid");
 });
 
+test("structured forecast remains usable as CAUTION when official feeds are down", () => {
+  const previous = process.env.SAFETY_POLICY_APPROVED;
+  process.env.SAFETY_POLICY_APPROVED = "true";
+  const unavailableOfficial = (provider: string): ProviderResult<OfficialSnapshot> => ({
+    provider,
+    status: "unavailable",
+    evidence: [],
+    warnings: ["temporary outage"],
+    error: "temporary outage",
+  });
+
+  const assessment = evaluateFishingSafety(inputs({
+    imd: unavailableOfficial("IMD"),
+    ndma: unavailableOfficial("NDMA"),
+    incois: unavailableOfficial("INCOIS"),
+  }));
+
+  assert.equal(assessment.decision, "CAUTION");
+  assert.match(assessment.detail, /official alert feeds are unavailable/i);
+  if (previous === undefined) delete process.env.SAFETY_POLICY_APPROVED;
+  else process.env.SAFETY_POLICY_APPROVED = previous;
+});
+
 test("approved clear conditions produce GO", () => {
   const previous = process.env.SAFETY_POLICY_APPROVED;
   process.env.SAFETY_POLICY_APPROVED = "true";

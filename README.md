@@ -44,5 +44,8 @@ Google AI Studio, configured with `GOOGLE_GENERATIVE_AI_API_KEY`,
 `GOOGLE_PRIMARY_MODEL` and `GOOGLE_FALLBACK_MODEL`. The browser must never
 receive `GOOGLE_GENERATIVE_AI_API_KEY`, `GROQ_API_KEY`, `SARVAM_API_KEY`,
 `SCOUTIFY_API_KEY` or government API credentials. Missing provider credentials
-are reported as unavailable data and must not produce a positive safety
-decision.
+are reported as unavailable data. A structured Open-Meteo forecast can still
+support a conservative `CAUTION` result when all official alert feeds are
+temporarily unavailable; it must never produce `GO` without the approved
+safety policy, and Scoutify research cannot override the deterministic
+assessment.

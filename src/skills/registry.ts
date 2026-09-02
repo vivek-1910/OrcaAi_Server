@@ -5,24 +5,24 @@ import type { FisherContext, SkillId, SkillManifest, WaterMode } from "../types/
 const manifests: SkillManifest[] = [
   {
     id: "fishing-safety",
-    version: "0.1.0",
+    version: "0.1.1",
     title: "Fishing safety assessment",
     description: "Evaluate whether a marine or inland fishing window is currently verifiable for the fisher profile.",
     waterModes: ["marine", "inland"],
     triggers: ["go fishing", "should i go", "can i fish", "safe to launch", "fishing tomorrow"],
     requiredContext: ["waterMode", "location", "vessel", "experience"],
-    allowedTools: ["assess_fishing_conditions"],
+    allowedTools: ["assess_fishing_conditions", "search_trusted_fishing_sources", "extract_trusted_source"],
     safetyClass: "decision",
   },
   {
     id: "fishing-conditions",
-    version: "0.1.0",
+    version: "0.1.1",
     title: "Fishing conditions",
     description: "Inspect local weather, marine conditions and official alerts for the selected fishing area.",
     waterModes: ["marine", "inland"],
     triggers: ["weather", "wind", "wave", "swell", "sea condition", "water condition", "rain", "storm"],
     requiredContext: ["location", "waterMode"],
-    allowedTools: ["get_imd_conditions", "get_ndma_alerts", "get_open_meteo_weather", "get_open_meteo_marine", "get_incois_marine_data"],
+    allowedTools: ["get_imd_conditions", "get_ndma_alerts", "get_open_meteo_weather", "get_open_meteo_marine", "get_incois_marine_data", "search_trusted_fishing_sources", "extract_trusted_source"],
     safetyClass: "information",
   },
   {
