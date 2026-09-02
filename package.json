@@ -27,6 +27,7 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.61",
     "@ai-sdk/groq": "^4.0.36",
     "@fastify/cors": "^11.3.0",
     "@fastify/helmet": "^13.1.1",

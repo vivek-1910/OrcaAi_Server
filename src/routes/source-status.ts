@@ -1,11 +1,11 @@
 import type { FastifyInstance } from "fastify";
-import { groqHealth } from "../ai/groq-provider.js";
+import { googleHealth } from "../ai/google-provider.js";
 import { sarvamApiKeyPresent } from "../tool-providers/sarvam-client.js";
 
 export async function registerSourceStatusRoutes(app: FastifyInstance): Promise<void> {
   app.get("/v1/source-status", async () => ({
     providers: {
-      groq: await groqHealth(),
+      google: await googleHealth(),
       sarvam: { configured: sarvamApiKeyPresent() },
       imd: { configured: Boolean(process.env.IMD_API_KEY?.trim()) },
       ndma: { configured: Boolean(process.env.NDMA_CAP_URL?.trim()) },

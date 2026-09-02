@@ -2,7 +2,7 @@ import { isStepCount, ToolLoopAgent, type InferAgentUIMessage } from "ai";
 import { assessFishingTrip } from "../domain/assessment.js";
 import { allowedToolsFor, getSkillManifest } from "../skills/registry.js";
 import { FisherContextSchema, type FisherContext } from "../types/fishing.js";
-import { groqLanguageModel } from "./groq-provider.js";
+import { googleLanguageModel } from "./google-provider.js";
 import { createToolSet, type OrcaToolSet } from "./tools.js";
 
 const baseInstructions = `You are OrcaAi, a careful fishing assistant for fishers in India.
@@ -44,7 +44,7 @@ export function createOrcaAgent(rawContext: unknown, modelId: string, fallbackMo
 
   const agent = new ToolLoopAgent({
     id: "orca-fishing-agent",
-    model: groqLanguageModel(modelId, fallbackModelId),
+    model: googleLanguageModel(modelId, fallbackModelId),
     instructions: contextInstructions(context),
     tools,
     stopWhen: isStepCount(8),

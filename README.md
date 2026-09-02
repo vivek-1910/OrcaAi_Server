@@ -39,7 +39,10 @@ Set `HOST=0.0.0.0` when the server needs to accept connections from a container 
 
 ## Environment
 
-Provider API keys belong in the server `.env` only. The browser must never
-receive `GROQ_API_KEY`, `SARVAM_API_KEY`, `SCOUTIFY_API_KEY` or government API
-credentials. Missing provider credentials are reported as unavailable data and
-must not produce a positive safety decision.
+Provider API keys belong in the server `.env` only. The active chat provider is
+Google AI Studio, configured with `GOOGLE_GENERATIVE_AI_API_KEY`,
+`GOOGLE_PRIMARY_MODEL` and `GOOGLE_FALLBACK_MODEL`. The browser must never
+receive `GOOGLE_GENERATIVE_AI_API_KEY`, `GROQ_API_KEY`, `SARVAM_API_KEY`,
+`SCOUTIFY_API_KEY` or government API credentials. Missing provider credentials
+are reported as unavailable data and must not produce a positive safety
+decision.

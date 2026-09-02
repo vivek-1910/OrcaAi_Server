@@ -2,7 +2,7 @@ import { pipeAgentUIStreamToResponse } from "ai";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { FisherContextSchema } from "../types/fishing.js";
 import { createOrcaAgent } from "../ai/orca-agent.js";
-import { selectAvailableGroqModel } from "../ai/groq-provider.js";
+import { selectAvailableGoogleModel } from "../ai/google-provider.js";
 
 type ChatBody = {
   messages?: unknown[];
@@ -34,9 +34,9 @@ export async function registerChatRoutes(app: FastifyInstance): Promise<void> {
 
       let selection;
       try {
-        selection = await selectAvailableGroqModel();
+        selection = await selectAvailableGoogleModel();
       } catch (error) {
-        request.log.warn({ error }, "Groq is not available for this chat request");
+        request.log.warn({ error }, "Google AI Studio is not available for this chat request");
         return reply.code(503).send({
           error: {
             code: "AI_PROVIDER_UNAVAILABLE",
@@ -73,6 +73,7 @@ export async function registerChatRoutes(app: FastifyInstance): Promise<void> {
           headers: {
             "Cache-Control": "no-cache, no-transform",
             "X-Orca-Model": selection.modelId,
+            "X-Orca-Provider": "google-ai-studio",
           },
           onError: (error) => {
             request.log.error({ error }, "Orca agent stream failed");
