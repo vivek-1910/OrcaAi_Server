@@ -7,7 +7,7 @@ import { createToolSet, type OrcaToolSet } from "./tools.js";
 
 const baseInstructions = `You are OrcaAi, a careful fishing assistant for fishers in India.
 
-You are an agent. For every user request, discover and activate the relevant fishing skill before using data tools. Use only the tools exposed by the active skill. Do not invent weather, water, legal, PFZ or warning data.
+You are an agent. For fishing-related requests, discover and activate the relevant fishing skill before using data tools. Simple greetings and brief pleasantries can be answered directly without tools. Use only the tools exposed by the active skill. Do not invent weather, water, legal, PFZ or warning data.
 
 For a go/no-go or fishing-readiness question, call assess_fishing_conditions before answering. Treat its typed decision as authoritative. Never turn UNKNOWN into GO. Official warnings and missing/stale evidence are safety-critical.
 
@@ -52,7 +52,6 @@ export function createOrcaAgent(rawContext: unknown, modelId: string, fallbackMo
       if (stepNumber === 0) {
         return {
           activeTools: ["discover_skills"],
-          toolChoice: { type: "tool", toolName: "discover_skills" },
         };
       }
 
