@@ -80,13 +80,22 @@ export function createToolSet(context: FisherContext) {
     }),
 
     assess_fishing_conditions: tool({
-      description: "Run the deterministic, fail-closed fishing assessment for the current fisher context. Use before a go/no-go answer.",
+      description: "Run the deterministic, fail-closed fishing assessment for the current fisher context. Use before a go/no-go answer. The returned decision is authoritative: never recommend GO unless decision is exactly GO, and never recommend a fishing window when decision is NO_GO or UNKNOWN.",
       inputSchema: z.object({
         departureAt: z.string().datetime({ offset: true }).optional(),
         returnAt: z.string().datetime({ offset: true }).optional(),
         distanceKm: z.number().min(0).max(1000).optional(),
       }),
-      execute: async (input) => assessFishingTrip(parsedContext, input),
+      execute: async (input) => {
+        const assessment = await assessFishingTrip(parsedContext, input);
+        return {
+          ...assessment,
+          responseContract: {
+            authoritativeDecision: assessment.decision,
+            instruction: `The final answer must not recommend a different decision than ${assessment.decision}.`,
+          },
+        };
+      },
     }),
 
     get_imd_conditions: tool({

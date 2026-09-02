@@ -3,6 +3,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { FisherContextSchema } from "../types/fishing.js";
 import { createOrcaAgent } from "../ai/orca-agent.js";
 import { selectAvailableGoogleModel } from "../ai/google-provider.js";
+import { FishingAssessmentSchema, type FishingAssessment } from "../types/fishing.js";
 
 type ChatBody = {
   id?: unknown;
@@ -101,6 +102,8 @@ export async function registerChatRoutes(app: FastifyInstance): Promise<void> {
       request.raw.once("aborted", () => abortController.abort());
       reply.hijack();
 
+      let latestAssessment: FishingAssessment | undefined;
+
       try {
         request.log.info("Orca agent stream starting");
         await pipeAgentUIStreamToResponse({
@@ -110,6 +113,23 @@ export async function registerChatRoutes(app: FastifyInstance): Promise<void> {
           abortSignal: abortController.signal,
           timeout: { totalMs: 90_000 },
           sendReasoning: false,
+          onStepEnd: ({ toolResults }) => {
+            for (const toolResult of toolResults ?? []) {
+              if (toolResult.toolName !== "assess_fishing_conditions") continue;
+              const candidate = toolResult.output && typeof toolResult.output === "object"
+                ? { ...(toolResult.output as Record<string, unknown>) }
+                : undefined;
+              if (candidate) {
+                delete candidate.responseContract;
+                const parsed = FishingAssessmentSchema.safeParse(candidate);
+                if (parsed.success) latestAssessment = parsed.data;
+              }
+            }
+          },
+          messageMetadata: ({ part }) => {
+            if (part.type !== "finish" || !latestAssessment) return undefined;
+            return { fishingAssessment: latestAssessment };
+          },
           headers: {
             "Cache-Control": "no-cache, no-transform",
             "X-Orca-Model": selection.modelId,
