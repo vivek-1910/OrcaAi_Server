@@ -21,7 +21,9 @@ function getCorsOrigin(): string | string[] {
 export function buildApp(): FastifyInstance {
   const app = Fastify({ logger: true });
 
-  app.register(helmet);
+  app.register(helmet, {
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  });
   app.register(cors, { origin: getCorsOrigin() });
   app.register(websocket);
   app.register(registerChatRoutes);

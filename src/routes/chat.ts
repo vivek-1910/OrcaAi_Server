@@ -5,9 +5,40 @@ import { createOrcaAgent } from "../ai/orca-agent.js";
 import { selectAvailableGoogleModel } from "../ai/google-provider.js";
 
 type ChatBody = {
+  id?: unknown;
   messages?: unknown[];
   fisherContext?: unknown;
+  trigger?: unknown;
+  messageId?: unknown;
 };
+
+function streamCorsHeaders(origin: string | undefined): Record<string, string> {
+  if (!origin) return {};
+  const allowedOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:3000")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (!allowedOrigins.includes(origin)) return {};
+
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Expose-Headers": "X-Orca-Model, X-Orca-Provider",
+    Vary: "Origin",
+  };
+}
+
+function messageSummary(messages: unknown[]): Array<{ role?: unknown; partTypes: string[] }> {
+  return messages.slice(-3).map((message) => {
+    if (!message || typeof message !== "object") return { partTypes: [] };
+    const record = message as { role?: unknown; parts?: unknown[] };
+    return {
+      role: record.role,
+      partTypes: Array.isArray(record.parts)
+        ? record.parts.map((part) => part && typeof part === "object" && "type" in part ? String((part as { type?: unknown }).type) : "unknown")
+        : [],
+    };
+  });
+}
 
 function badBody(body: ChatBody): Error | undefined {
   if (!Array.isArray(body.messages)) return new Error("messages must be an array.");
@@ -22,6 +53,13 @@ export async function registerChatRoutes(app: FastifyInstance): Promise<void> {
       const body = request.body ?? {};
       const bodyError = badBody(body);
       if (bodyError) return reply.code(400).send({ error: bodyError.message });
+      request.log.info({
+        chatId: body.id,
+        trigger: body.trigger,
+        messageId: body.messageId,
+        messageCount: body.messages?.length ?? 0,
+        messages: messageSummary(body.messages ?? []),
+      }, "Orca chat request accepted");
 
       let context;
       try {
@@ -35,6 +73,7 @@ export async function registerChatRoutes(app: FastifyInstance): Promise<void> {
       let selection;
       try {
         selection = await selectAvailableGoogleModel();
+        request.log.info({ model: selection.modelId, fallbackModel: selection.fallbackModelId }, "Google AI Studio model selected");
       } catch (error) {
         request.log.warn({ error }, "Google AI Studio is not available for this chat request");
         return reply.code(503).send({
@@ -63,6 +102,7 @@ export async function registerChatRoutes(app: FastifyInstance): Promise<void> {
       reply.hijack();
 
       try {
+        request.log.info("Orca agent stream starting");
         await pipeAgentUIStreamToResponse({
           response: reply.raw,
           agent,
@@ -74,6 +114,7 @@ export async function registerChatRoutes(app: FastifyInstance): Promise<void> {
             "Cache-Control": "no-cache, no-transform",
             "X-Orca-Model": selection.modelId,
             "X-Orca-Provider": "google-ai-studio",
+            ...streamCorsHeaders(request.headers.origin),
           },
           onError: (error) => {
             request.log.error({ error }, "Orca agent stream failed");
