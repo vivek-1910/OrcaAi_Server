@@ -73,7 +73,7 @@ export function createOrcaAgent(rawContext: unknown, modelId: string, fallbackMo
       ) {
         return {
           activeTools,
-          toolChoice: { type: "tool", toolName: "assess_fishing_conditions" },
+          toolChoice: "required",
         };
       }
 
