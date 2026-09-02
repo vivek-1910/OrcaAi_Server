@@ -3,8 +3,8 @@ Description=OrcaAi GitHub Actions Runner
 After=network.target
 
 [Service]
-WorkingDirectory=/home/vivek/orcaai-server-runner
-ExecStart=/home/vivek/orcaai-server-runner/run.sh
+WorkingDirectory=/home/vivek/orcaai-server-runner-v2
+ExecStart=/home/vivek/orcaai-server-runner-v2/run.sh
 Restart=always
 RestartSec=5
 
