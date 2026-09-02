@@ -1,0 +1,49 @@
+name: Deploy OrcaAi Server
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, Linux, X64, orcaai-server]
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Sync project into /home/vivek/projects/OrcaAi_Server
+        run: |
+          mkdir -p /home/vivek/projects/OrcaAi_Server
+          rsync -az --delete \
+            --exclude '.git' \
+            --exclude 'node_modules' \
+            --exclude 'dist' \
+            --exclude '.env' \
+            --exclude '.DS_Store' \
+            "$GITHUB_WORKSPACE"/ /home/vivek/projects/OrcaAi_Server/
+
+      - name: Install dependencies
+        run: |
+          cd /home/vivek/projects/OrcaAi_Server
+          npm ci
+
+      - name: Build server
+        run: |
+          cd /home/vivek/projects/OrcaAi_Server
+          npm run build
+
+      - name: Restart PM2
+        run: |
+          cd /home/vivek/projects/OrcaAi_Server
+          pm2 startOrRestart ecosystem.config.cjs --update-env
+
+      - name: Verify local health
+        run: |
+          curl --fail --silent --show-error --max-time 15 http://127.0.0.1:48734/health
