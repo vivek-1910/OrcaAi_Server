@@ -44,54 +44,70 @@ export async function resolveLocation(label: string): Promise<ProviderResult<Res
     return unavailable("Open-Meteo Geocoding", "A harbour or waterbody is required.");
   }
 
-  const url = new URL("https://geocoding-api.open-meteo.com/v1/search");
-  url.searchParams.set("name", label.trim());
-  url.searchParams.set("count", "1");
-  url.searchParams.set("language", "en");
-  url.searchParams.set("format", "json");
+  const originalLabel = label.trim();
+  const simplifiedLabel = originalLabel
+    .replace(/\b(fishing\s+)?(harbour|harbor|port|jetty|landing\s+(centre|center)|reservoir|lake|river)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const queryLabels = [...new Set([originalLabel, simplifiedLabel].filter(Boolean))];
+  let lastError: unknown;
 
-  try {
-    const body = await fetchJson<{ results?: Array<Record<string, unknown>> }>(url.toString());
-    const first = body.results?.[0];
-    const latitude = toNumber(first?.latitude);
-    const longitude = toNumber(first?.longitude);
+  for (const queryLabel of queryLabels) {
+    const url = new URL("https://geocoding-api.open-meteo.com/v1/search");
+    url.searchParams.set("name", queryLabel);
+    url.searchParams.set("count", "1");
+    url.searchParams.set("language", "en");
+    url.searchParams.set("format", "json");
+    url.searchParams.set("countryCode", "IN");
 
-    if (!first || latitude === undefined || longitude === undefined) {
-      return unavailable("Open-Meteo Geocoding", `No coordinates found for ${label.trim()}.`);
-    }
+    try {
+      const body = await fetchJson<{ results?: Array<Record<string, unknown>> }>(url.toString());
+      const first = body.results?.[0];
+      const latitude = toNumber(first?.latitude);
+      const longitude = toNumber(first?.longitude);
 
-    const resolved: ResolvedLocation = {
-      label: String(first.name ?? label.trim()),
-      latitude,
-      longitude,
-      country: typeof first.country === "string" ? first.country : undefined,
-      admin1: typeof first.admin1 === "string" ? first.admin1 : undefined,
-      admin2: typeof first.admin2 === "string" ? first.admin2 : undefined,
-    };
+      if (!first || latitude === undefined || longitude === undefined) continue;
 
-    return {
-      provider: "Open-Meteo Geocoding",
-      status: "ok",
-      data: resolved,
-      warnings: [],
-      evidence: [{
+      const resolved: ResolvedLocation = {
+        label: String(first.name ?? originalLabel),
+        latitude,
+        longitude,
+        country: typeof first.country === "string" ? first.country : undefined,
+        admin1: typeof first.admin1 === "string" ? first.admin1 : undefined,
+        admin2: typeof first.admin2 === "string" ? first.admin2 : undefined,
+      };
+
+      return {
         provider: "Open-Meteo Geocoding",
-        title: `Location lookup for ${resolved.label}`,
-        url: url.toString(),
-        fetchedAt: new Date().toISOString(),
         status: "ok",
-        stale: false,
-      }],
-    };
-  } catch (error) {
-    return {
-      provider: "Open-Meteo Geocoding",
-      status: "error",
-      warnings: [error instanceof Error ? error.message : "Location lookup failed."],
-      evidence: [],
-      error: error instanceof Error ? error.message : "Location lookup failed.",
-    };
+        data: resolved,
+        warnings: [],
+        evidence: [{
+          provider: "Open-Meteo Geocoding",
+          title: `Location lookup for ${resolved.label}`,
+          url: url.toString(),
+          fetchedAt: new Date().toISOString(),
+          status: "ok",
+          stale: false,
+        }],
+      };
+    } catch (error) {
+      lastError = error;
+    }
   }
+
+  if (!lastError) {
+    return unavailable("Open-Meteo Geocoding", `No coordinates found for ${originalLabel}.`);
+  }
+
+  const errorMessage = lastError instanceof Error ? lastError.message : "Location lookup failed.";
+  return {
+    provider: "Open-Meteo Geocoding",
+    status: "error",
+    warnings: [errorMessage],
+    evidence: [],
+    error: errorMessage,
+  };
 }
 
 export function locationCoordinates(location: FisherLocation): ResolvedLocation | undefined {
