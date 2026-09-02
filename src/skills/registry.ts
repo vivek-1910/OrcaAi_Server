@@ -77,6 +77,16 @@ function normalize(value: string): string {
   return value.toLowerCase().replaceAll(/[^a-z0-9]+/g, " ").trim();
 }
 
+function containsPhrase(query: string, phrase: string): boolean {
+  const normalizedQuery = normalize(query);
+  const normalizedPhrase = normalize(phrase);
+  return Boolean(normalizedPhrase) && ` ${normalizedQuery} `.includes(` ${normalizedPhrase} `);
+}
+
+function containsWord(query: string, words: RegExp): boolean {
+  return words.test(` ${normalize(query)} `);
+}
+
 export function listSkillMetadata(waterMode?: WaterMode): SkillManifest[] {
   return manifests.filter((manifest) => !waterMode || manifest.waterModes.includes(waterMode));
 }
@@ -88,10 +98,10 @@ export function getSkillManifest(skillId: string): SkillManifest | undefined {
 export function discoverSkills(query: string, context: FisherContext): SkillManifest[] {
   const normalized = normalize(query);
   const matches = listSkillMetadata(context.waterMode).map((manifest) => {
-    const score = manifest.triggers.reduce((total, trigger) => total + (normalized.includes(normalize(trigger)) ? 2 : 0), 0);
-    const safetyBoost = manifest.id === "fishing-safety" && /go|safe|should|tomorrow|today|launch|trip/.test(normalized) ? 4 : 0;
-    const conditionBoost = manifest.id === "fishing-conditions" && /weather|wind|wave|rain|storm|sea|water/.test(normalized) ? 3 : 0;
-    const knowledgeBoost = manifest.id === "fishing-knowledge" && /how|bait|gear|tackle|fish|technique/.test(normalized) ? 3 : 0;
+    const score = manifest.triggers.reduce((total, trigger) => total + (containsPhrase(normalized, trigger) ? 2 : 0), 0);
+    const safetyBoost = manifest.id === "fishing-safety" && containsWord(normalized, /\b(go|safe|should|tomorrow|today|launch|trip|window|when|best)\b/) ? 4 : 0;
+    const conditionBoost = manifest.id === "fishing-conditions" && containsWord(normalized, /\b(weather|wind|wave|rain|storm|sea|water)\b/) ? 3 : 0;
+    const knowledgeBoost = manifest.id === "fishing-knowledge" && containsWord(normalized, /\b(how|bait|gear|tackle|fish|technique)\b/) ? 3 : 0;
     return { manifest, score: score + safetyBoost + conditionBoost + knowledgeBoost };
   });
 
